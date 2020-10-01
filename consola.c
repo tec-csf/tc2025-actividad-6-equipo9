@@ -25,6 +25,7 @@
 #include <unistd.h>
 
 #define TCP_PORT 8000
+#define STOPLIGHT 4
 
 void copy(int senial){
     printf("Este es un demo, si imprimió el valor de C %d\n", senial);
@@ -34,7 +35,9 @@ void undo(int senial){
     static int contOut = 0;
     printf("Este es un demo, si imprimió el valor de Z %d\n", senial);
 
-    if (contOut++ <= 2){
+    printf("%d\n", contOut);
+
+    if (++contOut <= 2){
         exit(-1);
     }
     
@@ -44,12 +47,13 @@ int main(int argc, const char *argv[])
 {
     struct sockaddr_in direccion;
     char buffer[1000];
+    size_t bufferSize = sizeof(buffer);
 
     int servidor, cliente;
 
     ssize_t leidos, escritos;
 
-    int continuar = 1, cantSemaforos = 4;
+    int continuar = 1;
 
     pid_t pid;
 
@@ -74,7 +78,7 @@ int main(int argc, const char *argv[])
     bind(servidor, (struct sockaddr *)&direccion, escritos);
 
     // Escuhar especificamente para 4 semaforos
-    listen(servidor, cantSemaforos);
+    listen(servidor, STOPLIGHT);
 
     // Aceptar conexiones
     while (continuar)
@@ -101,6 +105,7 @@ int main(int argc, const char *argv[])
 
         if (cliente >= 0)
         {
+            read(cliente, &buffer, bufferSize);
 
             // Leer datos del socket
             while (leidos = read(cliente, &buffer, sizeof(buffer)))

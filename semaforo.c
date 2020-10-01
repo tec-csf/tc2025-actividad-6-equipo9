@@ -32,7 +32,7 @@ int main(int argc, const char *argv[])
 
     int cliente;
 
-    ssize_t leidos, escritos;
+    ssize_t leidos, escritores;
 
     if (argc != 2)
     {
@@ -48,11 +48,12 @@ int main(int argc, const char *argv[])
     direccion.sin_port = htons(TCP_PORT);
     direccion.sin_family = AF_INET;
 
-    escritos = connect(cliente, (struct sockaddr *)&direccion, sizeof(direccion));
+    // Para establecer la conexión indicada
+    escritores = connect(cliente, (struct sockaddr *)&direccion, sizeof(direccion));
 
-    if (escritos == 0)
+    if (escritores == 0)
     {
-        printf("Conectado a %s:%d \n", inet_ntoa(direccion.sin_addr), ntohs(direccion.sin_port));
+        printf("Conectado a la consola con la dirección de %s:%d \n", inet_ntoa(direccion.sin_addr), ntohs(direccion.sin_port));
 
         // Escribir datos en el socket
         while ((leidos = read(fileno(stdin), &buffer, sizeof(buffer))))
