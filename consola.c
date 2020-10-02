@@ -24,25 +24,25 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <unistd.h>
+#include <string.h>
 
 // Port available for the console
 #define TCP_PORT 8000
-// Cantidad de semaforos predeterminada
-#define STOPLIGHT 4
 
 // Variable para indicar el semaforo que se está manejando
 int semaforo_encendido;
-int semaforos[STOPLIGHT];
-int bufferes[STOPLIGHT];
-ssize_t pids[STOPLIGHT];
+int semaforos[4];
+int bufferes[4];
+ssize_t pids[4];
+int greenGo = 0;
 
 // Metodo para poner todos los semáforos en intermitentes (amarillo).
 void cntrlCopy(int senial){
-    char todosSlow[] = "todosAmarillos";
+    char todosSlow[] = "amarillo";
 
     printf("Todos están en amarillo\n");
 
-    for (int i = 0; i < STOPLIGHT; ++i)
+    for (int i = 0; i < 4; ++i)
     {
         write(semaforos[i], &todosSlow, sizeof(todosSlow));
     }
@@ -51,11 +51,11 @@ void cntrlCopy(int senial){
 
 // Metodo para poner todos los semáforos en alto (rojo).
 void cntrlUndo(int senial){
-    char todosStop[] = "todosRojos";
+    char todosStop[] = "rojo";
 
     printf("Todos están en rojo\n");
 
-    for (int i = 0; i < STOPLIGHT; ++i)
+    for (int i = 0; i < 4; ++i)
     {
         write(semaforos[i], &todosStop, sizeof(todosStop));
     }
@@ -66,14 +66,14 @@ void estadoSemaforoActual(int sign){
 
     printf("*---------ESTADO DE LOS SEMÁFOROS---------*\n");
 
-    for (int cont = 0; cont < STOPLIGHT; ++cont){
+    for (int cont = 0; cont < 4; ++cont){
 
-        if(cont == sign){
+        if(cont == sign && greenGo == 1){
         
-            printf("El semáforo %d está en verde.\n", sign + 1);
+            printf("El semáforo %d está en verde.\n", cont + 1);
         
         }else{
-            printf("El semáforo %d está en rojo.\n", sign + 1);
+            printf("El semáforo %d está en rojo.\n", cont + 1);
         }
     }
 
@@ -128,11 +128,11 @@ int main(int argc, const char *argv[])
     bind(servidor, (struct sockaddr *)&direccion, escritos);
 
     // Escuhar especificamente para 4 semaforos
-    listen(servidor, STOPLIGHT);
+    listen(servidor, 4);
 
     // Aceptar conexiones
 
-    for (int i = 0; i < STOPLIGHT; ++i){
+    for (int i = 0; i < 4; ++i){
         //Para almacenar la cantidad total de hosts
         semaforos[i] = accept(servidor, (struct sockaddr *)&direccion, &escritos);
         
@@ -156,7 +156,13 @@ int main(int argc, const char *argv[])
             close(servidor);
 
             if(semaforo_encendido >= 0){
-                while(leidos = read(semaforo_encendido, &infoSemaforo, infoBufferSize)){
+                while(leidos = read(semaforos[i], &infoSemaforo, sizeof(infoSemaforo))){
+                    if(strcmp(infoSemaforo, "verde") == 0){
+                        greenGo = 1;
+                    }else{
+                        greenGo = 0;
+                    }
+
                     estadoSemaforoActual(i);
                 }
             }
@@ -172,7 +178,7 @@ int main(int argc, const char *argv[])
     
     if(pid > 0){
 
-        for (int i = 0; i < STOPLIGHT; ++i){
+        for (int i = 0; i < 4; ++i){
             
             if(i == 3){
                 write(semaforos[i], &bufferes[0], pids[0]);
@@ -182,7 +188,7 @@ int main(int argc, const char *argv[])
             }
 
         }
-        write(semaforos[0], &infoSemaforo, inicioSemaforoSize);
+        write(semaforos[0], &inicioSemaforo, inicioSemaforoSize);
 
         while(wait(NULL) != -1);
 
