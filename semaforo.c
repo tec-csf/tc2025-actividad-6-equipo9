@@ -5,12 +5,13 @@
  *  Programación Avanzada
  *  Profesor: Vicente Cubells
  * 
- *  Daniel Roa              -   A01021960
- *  Miguel Monterrubio      -   A01
+ *  Este código fue elaborado por:
+ *      Daniel Roa              -   A01021960
+ *      Miguel Monterrubio      -   A01
  * 
  *  Este código fue hecho en conjunto con:
- *  Sergio Hernández
- *  Antonio Junco
+ *      Sergio Hernández
+ *      Antonio Junco
  * 
  *  Ese es el programa de los semaforos, 
  *  responde a las señales enviadas por el código
@@ -20,17 +21,75 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <signal.h>
+#include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 
 #define TCP_PORT 8000
 
+// Enteros importantes
+int stoplight;
+int nextSemaforo;
+// Valor usado para identificar el estado actual del semáforo, Rojo = 0, Amarillo = 1 y Verde = 2
+int luz;
+
+void reverse(char s[])
+{
+    int i, j;
+    char c;
+
+    for (i = 0, j = strlen(s) - 1; i < j; i++, j--){
+        c = s[i];
+        s[i] = s[j];
+        s[j] = c;
+    }
+}
+
+// Función ITOA para convertir un int a un string
+void itoa(int n, char s[])
+{
+    int i, sign;
+
+    if ((sign = n) < 0){         // record sign
+        n = -n;                 // make n positive
+    }
+
+    i = 0;
+    do{                          // generate digits in reverse order
+        s[i++] = n % 10 + '0'; // get next digit
+    } while ((n /= 10) > 0);   // delete it 
+    
+    if (sign < 0){
+        s[i++] = '-';
+    }
+
+    s[i] = '\0';
+    reverse(s);
+}
+
+// Método para actualizar el color actual del semáforo a verde
+void updateGo(){
+    luz = 2;
+    char avance[] = "verde";
+
+    write(stoplight, &avance, sizeof(avance));
+    alarm(3);
+}
+
+// Método para cambiar el color a rojo
+void valarMorghulis(){
+    luz = 0;
+    kill(nextSemaforo, SIGUSR1);
+}
+
 int main(int argc, const char *argv[])
 {
     struct sockaddr_in direccion;
     char buffer[1000];
+    size_t bufferSize = sizeof(buffer);
 
-    int cliente;
+    pid_t pid = getpid();
 
     ssize_t leidos, escritores;
 
@@ -41,7 +100,7 @@ int main(int argc, const char *argv[])
     }
 
     // Crear el socket
-    cliente = socket(PF_INET, SOCK_STREAM, 0);
+    stoplight = socket(PF_INET, SOCK_STREAM, 0);
 
     // Establecer conexión
     inet_aton(argv[1], &direccion.sin_addr);
@@ -49,25 +108,43 @@ int main(int argc, const char *argv[])
     direccion.sin_family = AF_INET;
 
     // Para establecer la conexión indicada
-    escritores = connect(cliente, (struct sockaddr *)&direccion, sizeof(direccion));
+    escritores = connect(stoplight, (struct sockaddr *)&direccion, sizeof(direccion));
 
     if (escritores == 0)
     {
         printf("Conectado a la consola con la dirección de %s:%d \n", inet_ntoa(direccion.sin_addr), ntohs(direccion.sin_port));
 
-        // Escribir datos en el socket
-        while ((leidos = read(fileno(stdin), &buffer, sizeof(buffer))))
-        {
-            write(cliente, &buffer, leidos);
+        itoa(pid, buffer);
+        write(stoplight, buffer, sizeof(int));
 
-            /* Lee del buffer y escribe en pantalla */
-            leidos = read(cliente, &buffer, sizeof(buffer));
-            write(fileno(stdout), &buffer, leidos);
+        leidos = read(stoplight, &buffer, bufferSize);
+        nextSemaforo = atoi(buffer);
+
+        if(signal(SIGUSR1, updateGo) == SIG_ERR){
+            printf("No se pudo actualizar el estado del semáforo a verde.\n");
         }
+
+        if(signal(SIGALRM, valarMorghulis) == SIG_ERR){
+            printf("No se pudo cambiar el color del semáforo a rojo.\n");
+        }
+
+        // Escribir datos en el socket
+        while (leidos = read(stoplight, &buffer, sizeof(buffer))){
+            
+            if(strcmp(buffer, "verde") == 0){
+            
+                raise(SIGUSR1);
+            
+            }else if(strcmp(buffer, "rojo") == 0 && luz != 2){
+                
+            }
+
+        }
+        
     }
 
     // Cerrar sockets
-    close(cliente);
+    close(stoplight);
 
     return 0;
 }

@@ -32,21 +32,28 @@
 
 // Variable para indicar el semaforo que se está manejando
 int semaforo_encendido;
+int semaforos[STOPLIGHT];
+int bufferes[STOPLIGHT];
+ssize_t pids[STOPLIGHT];
 
-// Metodo para poner todos los semáforos en intermitentes
+// Metodo para poner todos los semáforos en intermitentes (amarillo).
 void cntrlCopy(int senial){
-    printf("Este es un demo, si imprimió el valor de C %d\n", senial);
+    char todosSlow[] = "todosAmarillos";
+
+    for (int i = 0; i < STOPLIGHT; ++i)
+    {
+        write(semaforos[i], &todosSlow, sizeof(todosSlow));
+    }
+    
 }
 
-// Metodo para poner todos los semáforos en alto
+// Metodo para poner todos los semáforos en alto (rojo).
 void cntrlUndo(int senial){
-    static int contOut = 0;
-    printf("Este es un demo, si imprimió el valor de Z %d\n", senial);
+    char todosStop[] = "todosRojos";
 
-    printf("%d\n", contOut);
-
-    if (++contOut == 2){
-        exit(-1);
+    for (int i = 0; i < STOPLIGHT; ++i)
+    {
+        write(semaforos[i], &todosStop, sizeof(todosStop));
     }
     
 }
@@ -78,8 +85,6 @@ int main(int argc, const char *argv[])
 
     ssize_t leidos, escritos;
 
-    int continuar = 1, semaforos[STOPLIGHT], bufferes[STOPLIGHT];
-
     // Estados del semaforo
     char inicioSemaforo[] = "verde";
     char intSemaforo[] = "amarillo";
@@ -93,8 +98,13 @@ int main(int argc, const char *argv[])
     size_t intSemaforoSize = sizeof(intSemaforo);
     size_t pausaSemaforoSize = sizeof(pausaSemaforo);
 
-    //signal(SIGINT, cntrlCopy);
-    signal(SIGTSTP, cntrlUndo);
+    if (signal(SIGINT, SIG_IGN) == SIG_ERR){
+        printf("ERROR: No se pudo establecer conexión con el manejador de la señal.\n");
+    }
+    
+    if(signal(SIGTSTP, SIG_IGN) == SIG_ERR){
+        printf("ERROR: No se pudo establecer conexión con el manejador de la señal.\n");
+    }
 
     if (argc != 2)
     {
@@ -116,12 +126,9 @@ int main(int argc, const char *argv[])
     // Escuhar especificamente para 4 semaforos
     listen(servidor, STOPLIGHT);
 
-    ssize_t pids[STOPLIGHT];
-
     // Aceptar conexiones
 
-    for (int i = 0; i < STOPLIGHT; ++i)
-    {
+    for (int i = 0; i < STOPLIGHT; ++i){
         //Para almacenar la cantidad total de hosts
         semaforos[i] = accept(servidor, (struct sockaddr *)&direccion, &escritos);
         
@@ -134,8 +141,13 @@ int main(int argc, const char *argv[])
             semaforo_encendido = semaforos[i];
 
             // Funciones para poder convocar a los métodos que se encargan de las señales por manejarse
-            //signal(SIGINT, cntrlCopy);
-            signal(SIGTSTP, cntrlUndo);
+            if (signal(SIGINT, cntrlCopy) == SIG_ERR){
+                printf("ERROR: No se pudo cambiar el estado de los semáforos a amarillo.\n");
+            }
+
+            if (signal(SIGTSTP, cntrlUndo) == SIG_ERR){
+                printf("ERROR: No se pudo cambiar los semáforos a rojo.\n");
+            }
 
             close(servidor);
 
