@@ -5,12 +5,13 @@
  *  Programación Avanzada
  *  Profesor: Vicente Cubells
  * 
- *  Daniel Roa              -   A01021960
- *  Miguel Monterrubio      -   A01
+ *  Este código fue elaborado por:
+ *      Daniel Roa              -   A01021960
+ *      Miguel Monterrubio      -   A01
  * 
  *  Este código fue hecho en conjunto con:
- *  Sergio Hernández
- *  Antonio Junco
+ *      Sergio Hernández
+ *      Antonio Junco
  * 
  *  Ese es el programa de la consola de monitoreo, 
  *  le envía señales a los semaforos que se encuentran
@@ -24,41 +25,76 @@
 #include <signal.h>
 #include <unistd.h>
 
+// Port available for the console
 #define TCP_PORT 8000
+// Cantidad de semaforos predeterminada
 #define STOPLIGHT 4
 
-void copy(int senial){
+// Variable para indicar el semaforo que se está manejando
+int semaforo_encendido;
+
+// Metodo para poner todos los semáforos en intermitentes
+void cntrlCopy(int senial){
     printf("Este es un demo, si imprimió el valor de C %d\n", senial);
 }
 
-void undo(int senial){
+// Metodo para poner todos los semáforos en alto
+void cntrlUndo(int senial){
     static int contOut = 0;
     printf("Este es un demo, si imprimió el valor de Z %d\n", senial);
 
     printf("%d\n", contOut);
 
-    if (++contOut <= 2){
+    if (++contOut == 2){
         exit(-1);
     }
     
 }
 
+void estadoSemaforoActual(int sign){
+
+    printf("*---------ESTADO DE LOS SEMÁFOROS---------*");
+
+    for (int cont = 0; cont < STOPLIGHT; ++cont){
+
+        if(cont == sign){
+        
+            printf("El semáforo %d está en verde.\n", sign + 1);
+        
+        }else{
+            printf("El semáforo %d está en rojo.\n", sign + 1);
+        }
+    }
+
+    printf("*----------------------------------------*\n");
+}
+
 int main(int argc, const char *argv[])
 {
     struct sockaddr_in direccion;
-    char buffer[1000];
-    size_t bufferSize = sizeof(buffer);
+    char infoSemaforo[1000];
 
-    int servidor, cliente;
+    int servidor;
 
     ssize_t leidos, escritos;
 
-    int continuar = 1;
+    int continuar = 1, semaforos[STOPLIGHT], bufferes[STOPLIGHT];
+
+    // Estados del semaforo
+    char inicioSemaforo[] = "verde";
+    char intSemaforo[] = "amarillo";
+    char pausaSemaforo[] = "rojo";
 
     pid_t pid;
 
-    //signal(SIGINT, copy);
-    signal(SIGTSTP, undo);
+    //Tamaños de las variables actuales
+    size_t infoBufferSize = sizeof(infoSemaforo);
+    size_t inicioSemaforoSize = sizeof(inicioSemaforo);
+    size_t intSemaforoSize = sizeof(intSemaforo);
+    size_t pausaSemaforoSize = sizeof(pausaSemaforo);
+
+    //signal(SIGINT, cntrlCopy);
+    signal(SIGTSTP, cntrlUndo);
 
     if (argc != 2)
     {
@@ -80,53 +116,63 @@ int main(int argc, const char *argv[])
     // Escuhar especificamente para 4 semaforos
     listen(servidor, STOPLIGHT);
 
-    // Aceptar conexiones
-    while (continuar)
-    {
-        cliente = accept(servidor, (struct sockaddr *)&direccion, &escritos);
+    ssize_t pids[STOPLIGHT];
 
-        printf("Aceptando conexiones en %s:%d \n",
-               inet_ntoa(direccion.sin_addr),
-               ntohs(direccion.sin_port));
+    // Aceptar conexiones
+
+    for (int i = 0; i < STOPLIGHT; ++i)
+    {
+        //Para almacenar la cantidad total de hosts
+        semaforos[i] = accept(servidor, (struct sockaddr *)&direccion, &escritos);
+        
+        //Mensaje para confirmar a los usuarios que se puede establecer una conexión
+        printf("Aceptando conexiones en %s:%d\n", inet_ntoa(direccion.sin_addr), ntohs(direccion.sin_port));
 
         pid = fork();
 
         if (pid == 0){
-            continuar = 0;
-        }
-    }
+            semaforo_encendido = semaforos[i];
 
-    if (pid == 0)
-    {
-        signal(SIGINT, copy);
-        signal(SIGTSTP, undo);
+            // Funciones para poder convocar a los métodos que se encargan de las señales por manejarse
+            //signal(SIGINT, cntrlCopy);
+            signal(SIGTSTP, cntrlUndo);
 
-        close(servidor);
+            close(servidor);
 
-        if (cliente >= 0)
-        {
-            read(cliente, &buffer, bufferSize);
-
-            // Leer datos del socket
-            while (leidos = read(cliente, &buffer, sizeof(buffer)))
-            {
-                write(fileno(stdout), &buffer, leidos);
-
-                /* Leer de teclado y escribir en el socket */
-                leidos = read(fileno(stdin), &buffer, sizeof(buffer));
-                write(cliente, &buffer, leidos);
+            if(semaforo_encendido >= 0){
+                while(leidos = read(semaforo_encendido, &infoSemaforo, infoBufferSize)){
+                    estadoSemaforoActual(i);
+                }
             }
+            close(semaforo_encendido);
+        
+        }else{
+
+            pids[i] = read(semaforos[i], &bufferes[i], sizeof(bufferes[i]));
+
         }
 
-        close(cliente);
     }
+    
+    if(pid > 0){
 
-    else if (pid > 0)
-    {
-        while (wait(NULL) != -1);
+        for (int i = 0; i < STOPLIGHT; ++i){
+            
+            if(i == 3){
+                write(semaforos[i], &bufferes[0], pids[0]);
+            }
+            else{
+                write(semaforos[i], &bufferes[i+1], pids[i + 1]);
+            }
 
-        // Cerrar sockets
+        }
+        write(semaforos[0], &infoSemaforo, inicioSemaforoSize);
+
+        while(wait(NULL) != -1);
+
         close(servidor);
+        
     }
+
     return 0;
 }
