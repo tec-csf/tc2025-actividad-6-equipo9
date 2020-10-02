@@ -40,6 +40,8 @@ ssize_t pids[STOPLIGHT];
 void cntrlCopy(int senial){
     char todosSlow[] = "todosAmarillos";
 
+    printf("Todos están en amarillo\n");
+
     for (int i = 0; i < STOPLIGHT; ++i)
     {
         write(semaforos[i], &todosSlow, sizeof(todosSlow));
@@ -51,6 +53,8 @@ void cntrlCopy(int senial){
 void cntrlUndo(int senial){
     char todosStop[] = "todosRojos";
 
+    printf("Todos están en rojo\n");
+
     for (int i = 0; i < STOPLIGHT; ++i)
     {
         write(semaforos[i], &todosStop, sizeof(todosStop));
@@ -60,7 +64,7 @@ void cntrlUndo(int senial){
 
 void estadoSemaforoActual(int sign){
 
-    printf("*---------ESTADO DE LOS SEMÁFOROS---------*");
+    printf("*---------ESTADO DE LOS SEMÁFOROS---------*\n");
 
     for (int cont = 0; cont < STOPLIGHT; ++cont){
 

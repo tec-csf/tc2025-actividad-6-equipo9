@@ -33,6 +33,7 @@ int stoplight;
 int nextSemaforo;
 // Valor usado para identificar el estado actual del semáforo, Rojo = 0, Amarillo = 1 y Verde = 2
 int luz;
+int pastLight;
 
 void reverse(char s[])
 {
@@ -72,7 +73,7 @@ void itoa(int n, char s[])
 void updateGo(){
     luz = 2;
     char avance[] = "verde";
-
+    printf("Ya soy verde.\n");
     write(stoplight, &avance, sizeof(avance));
     alarm(3);
 }
@@ -92,12 +93,18 @@ int main(int argc, const char *argv[])
     pid_t pid = getpid();
 
     ssize_t leidos, escritores;
+    sigset_t sigList;
+    
 
     if (argc != 2)
     {
         printf("Use: %s IP_Servidor \n", argv[0]);
         exit(-1);
     }
+
+    sigemptyset(&sigList);
+    sigaddset(&sigList, SIGALRM);
+    sigaddset(&sigList, SIGUSR1);
 
     // Crear el socket
     stoplight = socket(PF_INET, SOCK_STREAM, 0);
@@ -135,10 +142,30 @@ int main(int argc, const char *argv[])
             
                 raise(SIGUSR1);
             
-            }else if(strcmp(buffer, "rojo") == 0 && luz != 2){
-                
             }
-
+            else if (strcmp(buffer, "todosRojos") == 0 && luz != 0)
+            {
+                pastLight = luz;
+                luz = 0;
+                printf("Cambio a rojo\n");
+                sigprocmask(SIG_BLOCK, &sigList, NULL);
+            }
+            else if (strcmp(buffer, "todosAmarillos") == 0 && luz != 1){
+                pastLight = luz;
+                luz = 1;
+                printf("Cambio a amarillo\n");
+                sigprocmask(SIG_BLOCK, &sigList, NULL);
+            }
+            else if(strcmp(buffer, "todosRojos") == 0 && luz == 0){
+                luz = pastLight;
+                printf("Yacambié, ya no soy rojo\n");
+                sigprocmask(SIG_UNBLOCK, &sigList, NULL);
+            }
+            else if(strcmp(buffer, "todosAmarillos") == 0 && luz == 1){
+                luz = pastLight;
+                printf("Ya cambié, ya no estoy en amarillo.\n");
+                sigprocmask(SIG_UNBLOCK, &sigList, NULL);
+            }
         }
         
     }
