@@ -144,25 +144,25 @@ int main(int argc, const char *argv[])
                 raise(SIGUSR1);
             
             }
-            else if (strcmp(buffer, "todosRojos") == 0 && luz != 0)
+            else if (strcmp(buffer, "rojo") == 0 && luz != 0)
             {
                 pastLight = luz;
                 luz = 0;
                 printf("Cambio a rojo\n");
                 sigprocmask(SIG_BLOCK, &sigList, NULL);
             }
-            else if (strcmp(buffer, "todosAmarillos") == 0 && luz != 1){
+            else if (strcmp(buffer, "amarillo") == 0 && luz != 1){
                 pastLight = luz;
                 luz = 1;
                 printf("Cambio a amarillo\n");
                 sigprocmask(SIG_BLOCK, &sigList, NULL);
             }
-            else if(strcmp(buffer, "todosRojos") == 0 && luz == 0){
+            else if(strcmp(buffer, "rojo") == 0 && luz == 0){
                 luz = pastLight;
-                printf("Yacambié, ya no soy rojo\n");
+                printf("Ya cambié, ya no soy rojo\n");
                 sigprocmask(SIG_UNBLOCK, &sigList, NULL);
             }
-            else if(strcmp(buffer, "todosAmarillos") == 0 && luz == 1){
+            else if(strcmp(buffer, "amarillo") == 0 && luz == 1){
                 luz = pastLight;
                 printf("Ya cambié, ya no estoy en amarillo.\n");
                 sigprocmask(SIG_UNBLOCK, &sigList, NULL);
