@@ -76,7 +76,7 @@ void updateGo(){
     char avance[] = "verde";
     printf("Ya soy verde.\n");
     write(stoplight, &avance, sizeof(avance));
-    alarm(3);
+    alarm(30);
 }
 
 // Método para cambiar el color a rojo
@@ -149,23 +149,23 @@ int main(int argc, const char *argv[])
             {
                 pastLight = luz;
                 luz = 0;
-                printf("Cambio a rojo\n");
+                printf("Cambio manual a rojo. BLOQUEADO\n");
                 sigprocmask(SIG_BLOCK, &sigList, NULL);
             }
             else if (strcmp(buffer, "amarillo") == 0 && luz != 1){
                 pastLight = luz;
                 luz = 1;
-                printf("Cambio a amarillo\n");
+                printf("Cambio a manual a amarillo. BLOQUEADO\n");
                 sigprocmask(SIG_BLOCK, &sigList, NULL);
             }
             else if(strcmp(buffer, "rojo") == 0 && luz == 0){
                 luz = pastLight;
-                printf("Ya cambié, ya no soy rojo\n");
+                printf("DESBLOQUEADO, ya no soy rojo\n");
                 sigprocmask(SIG_UNBLOCK, &sigList, NULL);
             }
             else if(strcmp(buffer, "amarillo") == 0 && luz == 1){
                 luz = pastLight;
-                printf("Ya cambié, ya no estoy en amarillo.\n");
+                printf("DESBLOQUEADO, ya no soy amarillo\n");
                 sigprocmask(SIG_UNBLOCK, &sigList, NULL);
             }
         }
