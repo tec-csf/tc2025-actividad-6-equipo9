@@ -7,7 +7,7 @@
  * 
  *  Este código fue elaborado por:
  *      Daniel Roa              -   A01021960
- *      Miguel Monterrubio      -   A01
+ *      Miguel Monterrubio      -   A01022153
  * 
  *  Este código fue hecho en conjunto con:
  *      Sergio Hernández
