@@ -82,6 +82,7 @@ void updateGo(){
 // Método para cambiar el color a rojo
 void valarMorghulis(){
     luz = 0;
+    printf("Regresé a rojo.\n");
     kill(nextSemaforo, SIGUSR1);
 }
 
